@@ -53,11 +53,12 @@ Dude.prototype = {
 
   move: function() {
     this.velocity = geom.translate(this.velocity,
-                                     geom.rotate({ x: 0, y: -0.05 }, { x: 0, y: 0 }, this.angle));
+                                   geom.rotate({ x: 0, y: -0.01 }, { x: 0, y: 0 }, this.angle));
     moveBody(this, geom.translate(this.center, this.velocity));
   },
 
   update: function() {
+    var rigthup = 0;
     if (this.noMoreMoves) return;
 
     if (this.keyboarder.isDown(this.keyboarder.KEYS.UP)) {
@@ -71,7 +72,7 @@ Dude.prototype = {
       else {
         this.turnRight();
       }
-
+      rigthup++;
       this.move();
     } else if (this.keyboarder.isDown(this.keyboarder.KEYS.DOWN)) {
 
@@ -102,7 +103,7 @@ Dude.prototype = {
       this.move();
 
     } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
-      
+      rigthup++;
       if (this.degrees >= (90.0 - delta) && this.degrees <= (90.0 + delta) ) {
         this.velocity.y = 0;
         this.turn(Math.PI * 0.5 - this.angle);
@@ -115,7 +116,7 @@ Dude.prototype = {
 
       this.move();
     }
-
+    if (rigthup === 2) {console.log('both')}
     if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
       var gloveCenter = {
         x: this.center.x,

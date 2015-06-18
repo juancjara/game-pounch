@@ -92,11 +92,12 @@ Dude.prototype = {
 
   move: function() {
     this.velocity = geom.translate(this.velocity,
-                                     geom.rotate({ x: 0, y: -0.05 }, { x: 0, y: 0 }, this.angle));
+                                   geom.rotate({ x: 0, y: -0.01 }, { x: 0, y: 0 }, this.angle));
     moveBody(this, geom.translate(this.center, this.velocity));
   },
 
   update: function() {
+    var rigthup = 0;
     if (this.noMoreMoves) return;
 
     if (this.keyboarder.isDown(this.keyboarder.KEYS.UP)) {
@@ -110,7 +111,7 @@ Dude.prototype = {
       else {
         this.turnRight();
       }
-
+      rigthup++;
       this.move();
     } else if (this.keyboarder.isDown(this.keyboarder.KEYS.DOWN)) {
 
@@ -141,7 +142,7 @@ Dude.prototype = {
       this.move();
 
     } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
-      
+      rigthup++;
       if (this.degrees >= (90.0 - delta) && this.degrees <= (90.0 + delta) ) {
         this.velocity.y = 0;
         this.turn(Math.PI * 0.5 - this.angle);
@@ -154,7 +155,7 @@ Dude.prototype = {
 
       this.move();
     }
-
+    if (rigthup === 2) {console.log('both')}
     if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
       var gloveCenter = {
         x: this.center.x,
@@ -192,28 +193,30 @@ var geom = require('./geom');
 var Glove = function(game, start, angle, parent) {
   this.game = game;
   this.parent = parent;
-  this.velocity = geom.rotate({ x: 0, y: -1 }, { x: 0, y: 0 }, angle);
+  this.velocity = geom.rotate({x: 0, y: -1}, { x: 0, y: 0 }, angle);
   this.angle = angle;
   this.points = [start, geom.translate(start, this.velocity)];
-  this.size = {x: 4, y: 1};
   this.factorInc = 2;
   this.growDirection = 1;
   this.maxSize = 50;
+  this.size = this.maxSize;
   this.firstVelState = this.velocity;
 };
 
 Glove.prototype = {
 
   update: function() {
-    if (!geom.equal(this.firstVelState, this.velocity) && 
-        geom.equal(this.points[0], this.points[1])) {
-
-        this.parent.moveAgain();
-        this.game.removeBody(this);
-        return;
+    if (this.size <= 0) {
+      this.parent.moveAgain();
+      this.game.removeBody(this);
+      return;
+    }
+    if (this.shouldReduce) {
+      this.size--;
     }
     if (geom.distance(this.points[0], this.points[1]) > this.maxSize) {
       this.firstVelState = this.velocity;
+      this.shouldReduce = true;
       this.velocity = geom.reverseVector(this.velocity);
     }
     this.points[1] = geom.translate(this.points[1], this.velocity);
