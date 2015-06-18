@@ -1,0 +1,19 @@
+{
+  "name": "game-pounch",
+  "version": "0.0.0",
+  "description": "game",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "watchify js/main.js -o bundle.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/juancjara/game-pounch.git"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/juancjara/game-pounch/issues"
+  }
+}
