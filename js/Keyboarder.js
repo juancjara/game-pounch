@@ -13,7 +13,7 @@ var Keyboarder = function() {
     return keyState[keyCode] === true;
   };
 
-  this.KEYS = {LEFT: 37, RIGHT: 39, UP: 38, DOWN: 40, SPACE: 32};
+  this.KEYS = {LEFT: 37, RIGHT: 39, UP: 38, DOWN: 40, SPACE: 32, CTRL: 17};
 };
 
 module.exports = Keyboarder;

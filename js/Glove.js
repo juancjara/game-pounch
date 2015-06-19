@@ -9,7 +9,7 @@ var Glove = function(game, start, angle, parent) {
   this.points = [start, geom.translate(start, this.velocity)];
   this.factorInc = 2;
   this.growDirection = 1;
-  this.maxSize = 50;
+  this.maxSize = 40;
   this.size = this.maxSize;
   this.firstVelState = this.velocity;
 };

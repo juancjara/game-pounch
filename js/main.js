@@ -7,7 +7,7 @@ var Game = function() {
     y: screen.canvas.height
   };
 
-  this.bodies = [new Dude(this)];
+  this.bodies = [new Dude(this, {x: 300, y: 300})];
 
   var self = this;
   var tick = function() {
@@ -48,5 +48,5 @@ Game.prototype = {
 
 
 window.addEventListener('load', function() {
-  new Game();
+  var game = new Game();
 });

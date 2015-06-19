@@ -42,13 +42,11 @@ var drawer = require('./Drawer');
 var geom = require('./geom');
 var Glove = require('./Glove');
 
-var delta = 5;
-
-var Dude = function(game) {
+var Dude = function(game, center) {
   this.game = game;
   this.angle = 0;
-  this.size = {x: 50, y: 50};
-  this.center = {x: 200, y: 300};
+  this.size = {x: 25, y: 25};
+  this.center = center;
   this.points = [
     {x: this.center.x - this.size.x/2, y: this.center.y - this.size.y/2, color: 'red'},
     {x: this.center.x + this.size.x/2, y: this.center.y - this.size.y/2, color: 'yellow'},
@@ -56,11 +54,50 @@ var Dude = function(game) {
     {x: this.center.x - this.size.x/2, y: this.center.y + this.size.y/2, color: 'blue'}
   ];
   this.keyboarder = new Keyboarder();
-  this.speed = 2;
   this.velocity = { x: 0, y: 0 };
   this.noMoreMoves = false;
-  this.degrees = toDegrees(this.angle);
-  console.log(this.degrees);
+  this.possibleMoves = [
+    {
+      keys: [this.keyboarder.KEYS.UP, this.keyboarder.KEYS.RIGHT],
+      velocity: {x: 1, y: -1},
+      angle: Math.PI * 0.25
+    },
+    {
+      keys: [this.keyboarder.KEYS.DOWN, this.keyboarder.KEYS.RIGHT],
+      velocity: {x: 1, y: 1},
+      angle: Math.PI * 0.75
+    },
+    {
+      keys: [this.keyboarder.KEYS.UP, this.keyboarder.KEYS.LEFT],
+      velocity: {x: -1, y: -1},
+      angle: Math.PI * 1.75
+    },
+    {
+      keys: [this.keyboarder.KEYS.DOWN, this.keyboarder.KEYS.LEFT],
+      velocity: {x: -1, y: 1},
+      angle: Math.PI * 1.25
+    },
+    {
+      keys: [this.keyboarder.KEYS.UP],
+      velocity: {x: 0, y: -1},
+      angle: 0
+    },
+    {
+      keys: [this.keyboarder.KEYS.DOWN],
+      velocity: {x: 0, y: 1},
+      angle: Math.PI
+    },
+    {
+      keys: [this.keyboarder.KEYS.RIGHT],
+      velocity: {x: 1, y: 0},
+      angle: Math.PI * 0.5
+    },
+    {
+      keys: [this.keyboarder.KEYS.LEFT],
+      velocity: {x: -1, y: 0},
+      angle: Math.PI * 1.5
+    }
+  ];
 };
 
 var moveBody = function(body, center) {
@@ -69,25 +106,19 @@ var moveBody = function(body, center) {
   body.points = body.points.map(function(x) { return geom.translate(x, translation); });
 };
 
-var toDegrees = function(rad) {
-  var degrees = 180 / Math.PI * rad;
-  if (degrees > 360 || degrees < 0)  degrees = degrees % 360;
-  if (degrees < 0) degrees = Math.abs(360 - Math.abs(degrees));
-  return degrees;
-}
-
 Dude.prototype = {
 
   moveAgain: function() {
     this.noMoreMoves = false;
   },
 
-  turnLeft: function() {
-    this.turn(-0.1);
-  },
-
-  turnRight: function() {
-    this.turn(0.1);
+  turnTo: function(newAngle) {
+    var diff = newAngle - this.angle;
+    this.angle = newAngle;
+    var center = this.center;
+    this.points = this.points.map(function(x) { 
+                                    return geom.rotate(x, center, diff); 
+                                  });
   },
 
   move: function() {
@@ -96,67 +127,16 @@ Dude.prototype = {
     moveBody(this, geom.translate(this.center, this.velocity));
   },
 
+  keysPressed: function(keys) {
+    for (var j = 0, len = keys.length; j < len; j++) {
+      if (!this.keyboarder.isDown(keys[j])) return false;
+    }
+    return true;
+  },
+
   update: function() {
-    var rigthup = 0;
     if (this.noMoreMoves) return;
-
-    if (this.keyboarder.isDown(this.keyboarder.KEYS.UP)) {
-      
-      if (this.degrees >= (360.0 - delta) || this.degrees <= (0.0 + delta) ) {
-        this.velocity.x = 0;
-        this.turn(0 - this.angle);
-      } else if (this.degrees <= 180.0) {
-        this.turnLeft();
-      }
-      else {
-        this.turnRight();
-      }
-      rigthup++;
-      this.move();
-    } else if (this.keyboarder.isDown(this.keyboarder.KEYS.DOWN)) {
-
-      if (this.degrees >= (180.0 - delta) && this.degrees <= (180.0 + delta) ) {
-        this.velocity.x = 0;
-        this.turn(Math.PI - this.angle);
-      } else if (this.degrees <= 180.0) {
-        this.turnRight();
-      }
-      else {
-        this.turnLeft();
-      }
-      this.move();
-
-    }
-
-    if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)) {
-
-      if (this.degrees >= (270.0 - delta) && this.degrees <= (270.0 + delta) ) {
-        this.velocity.y = 0;
-        this.turn(Math.PI * 1.5 - this.angle);
-      } else if (this.degrees >= 180.0 && this.degrees <= 270.0) {
-        this.turnRight();
-      }
-      else {
-        this.turnLeft();
-      }
-      this.move();
-
-    } else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)) {
-      rigthup++;
-      if (this.degrees >= (90.0 - delta) && this.degrees <= (90.0 + delta) ) {
-        this.velocity.y = 0;
-        this.turn(Math.PI * 0.5 - this.angle);
-      } else if (this.degrees >= 270.0 || this.degrees <= 90.0) {
-        this.turnRight();
-      }
-      else {
-        this.turnLeft();
-      }
-
-      this.move();
-    }
-    if (rigthup === 2) {console.log('both')}
-    if (this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)) {
+    if (this.keyboarder.isDown(this.keyboarder.KEYS.CTRL)) {
       var gloveCenter = {
         x: this.center.x,
         y: this.center.y - this.size.y/2 - 1
@@ -167,15 +147,21 @@ Dude.prototype = {
                                   midPoint,
                                   this.angle, 
                                   this));
+      console.log('hit');
+      return;
     }
 
-  },
+    var actualMove;
+    for (var i = 0, len = this.possibleMoves.length; i < len; i++) {
+       actualMove = this.possibleMoves[i]; 
+      if (this.keysPressed(actualMove.keys)) {
+        this.velocity = actualMove.velocity;
+        this.turnTo(actualMove.angle);
+        this.move();
+        return;
+      }
+    }
 
-  turn: function(angleDelta) {
-    var center = this.center;
-    this.points = this.points.map(function(x) { return geom.rotate(x, center, angleDelta); });
-    this.angle += angleDelta;
-    this.degrees = toDegrees(this.angle);
   },
 
   draw: function(screen) {
@@ -198,7 +184,7 @@ var Glove = function(game, start, angle, parent) {
   this.points = [start, geom.translate(start, this.velocity)];
   this.factorInc = 2;
   this.growDirection = 1;
-  this.maxSize = 50;
+  this.maxSize = 40;
   this.size = this.maxSize;
   this.firstVelState = this.velocity;
 };
@@ -246,7 +232,7 @@ var Keyboarder = function() {
     return keyState[keyCode] === true;
   };
 
-  this.KEYS = {LEFT: 37, RIGHT: 39, UP: 38, DOWN: 40, SPACE: 32};
+  this.KEYS = {LEFT: 37, RIGHT: 39, UP: 38, DOWN: 40, SPACE: 32, CTRL: 17};
 };
 
 module.exports = Keyboarder;
@@ -306,7 +292,7 @@ var Game = function() {
     y: screen.canvas.height
   };
 
-  this.bodies = [new Dude(this)];
+  this.bodies = [new Dude(this, {x: 300, y: 300})];
 
   var self = this;
   var tick = function() {
@@ -347,7 +333,7 @@ Game.prototype = {
 
 
 window.addEventListener('load', function() {
-  new Game();
+  var game = new Game();
 });
 
 },{"./Dude":2}]},{},[6]);
