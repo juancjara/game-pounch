@@ -42,8 +42,10 @@ var drawer = require('./Drawer');
 var geom = require('./geom');
 var Glove = require('./Glove');
 
-var Dude = function(game, location, noMoves) {
+var Dude = function(game, location, noMoves, name) {
+  this.name = name;
   this.game = game;
+  this.glove;
   this.angle = location.angle;
   this.size = {x: 50, y: 50};
   this.center = location.center;
@@ -51,7 +53,7 @@ var Dude = function(game, location, noMoves) {
   this.keyboarder = new Keyboarder();
   this.velocity = { x: 0, y: 0 };
   this.noMoreMoves = !noMoves;
-  this.speed = 2;
+  this.speed = 4;
   this.possibleMoves = [
     {
       keys: [this.keyboarder.KEYS.UP, this.keyboarder.KEYS.RIGHT],
@@ -119,6 +121,7 @@ Dude.prototype = {
   },
 
   moveAgain: function() {
+    this.glove = null;
     this.noMoreMoves = false;
   },
 
@@ -147,16 +150,10 @@ Dude.prototype = {
   update: function() {
     if (this.noMoreMoves) return;
     if (this.keyboarder.isDown(this.keyboarder.KEYS.CTRL)) {
-      var gloveCenter = {
-        x: this.center.x,
-        y: this.center.y - this.size.y/2 - 1
-      }
       var midPoint = geom.midPoint(this.points[0], this.points[1]);
       this.noMoreMoves = true;
-      this.game.addBody(new Glove(this.game,
-                                  midPoint,
-                                  this.angle, 
-                                  this));
+      this.glove = new Glove(this.game, midPoint, this.angle, this);
+      this.game.addBody(this.glove);
       console.log('hit');
       return;
     }
@@ -183,8 +180,11 @@ Dude.prototype = {
 module.exports = Dude;
 
 },{"./Drawer":1,"./Glove":3,"./Keyboarder":4,"./geom":6}],3:[function(require,module,exports){
+//var Dude = require('./Dude.js');
+//console.log('dude', Dude);
 var drawer = require('./Drawer');
 var geom = require('./geom');
+
 
 var Glove = function(game, start, angle, parent) {
   this.game = game;
@@ -196,10 +196,22 @@ var Glove = function(game, start, angle, parent) {
   this.growDirection = 1;
   this.maxSize = 40;
   this.size = this.maxSize;
-  this.firstVelState = this.velocity;
 };
 
 Glove.prototype = {
+
+  collision: function(otherBody) {
+    if (otherBody.name && otherBody.name !== this.parent.name) {
+      this.reverse();
+      console.log(this.size, 'het', this.shouldReduce);
+      this.game.removePlayer(otherBody.name);
+    }
+  },
+
+  reverse: function() {
+    this.shouldReduce = true;
+    this.velocity = geom.reverseVector(this.velocity);
+  },
 
   update: function() {
     if (this.size <= 0) {
@@ -207,13 +219,13 @@ Glove.prototype = {
       this.game.removeBody(this);
       return;
     }
+    
     if (this.shouldReduce) {
       this.size--;
     }
-    if (geom.distance(this.points[0], this.points[1]) > this.maxSize) {
-      this.firstVelState = this.velocity;
-      this.shouldReduce = true;
-      this.velocity = geom.reverseVector(this.velocity);
+
+    if (!this.shouldReduce && geom.distance(this.points[0], this.points[1]) > this.maxSize) {      
+      this.reverse();
     }
     this.points[1] = geom.translate(this.points[1], this.velocity);
     
@@ -248,6 +260,7 @@ var Keyboarder = function() {
 module.exports = Keyboarder;
 },{}],5:[function(require,module,exports){
 var Dude = require('./Dude');
+var geom = require('./geom');
 //var socket = require('./socket');
 var socket = io();
 
@@ -267,21 +280,16 @@ var Game = function(name) {
     ], 
     angle: 0
   }
-  
-
-
-  var someoneElse = new Dude(this, testData, false);
+  var someoneElse = new Dude(this, testData, false, 'lel');
   this.players['lel'] = someoneElse;
-  this.bodies = [someoneElse];
+  this.bodies.push(someoneElse);
 */
-
-
   socket.emit('join', name);
   socket.on('new players', function(players) {
     console.log('new players');
     for (var k in players) {
       if (!(k in self.players)) {
-        var player = new Dude(self, players[k].location, self.myName === k);
+        var player = new Dude(self, players[k].location, self.myName === k, k);
         self.bodies.push(player);
         self.players[k] = player;
       }
@@ -289,8 +297,22 @@ var Game = function(name) {
   })
 
   socket.on('update player', function(updatePlayer) {
-    self.players[updatePlayer.name].updateStatus(updatePlayer.location);
+    if (updatePlayer.name in self.players) {
+      self.players[updatePlayer.name].updateStatus(updatePlayer.location);
+    } else {
+      console.log('not in list', updatePlayer.name);
+      self.removeBody(self.players[updatePlayer.name]);
+      delete self.players[updatePlayer.name];
+    }
   });
+
+  socket.on('remove player', function(name) {
+    console.log('player death socket on', name)
+    if (name in self.players) {
+      self.removeBody(self.players[name]);
+      delete self.players[name];
+    }
+  })
 
   var screen = document.getElementById('screen').getContext('2d');
   
@@ -308,6 +330,48 @@ var Game = function(name) {
   tick();
 };
 
+var anyLinesIntersecting = function(lines1, lines2) {
+    for (var i = 0, len1 = lines1.length; i < len1; i++) {
+      for (var j = 0, len2 = lines2.length; j < len2; j++) {
+        if (geom.linesIntersecting(lines1[i], lines2[j])) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+var isColliding = function(b1, b2) {
+  if (b1 === b2) return false;
+
+  var lines1 = geom.pointsToLines(b1.points);
+  var lines2 = geom.pointsToLines(b2.points);
+
+  return anyLinesIntersecting(lines1, lines2);
+};
+
+var reportCollisions = function(bodies) {
+  var collisions = [];
+  for (var i = 0; i < bodies.length; i++) {
+    for (var j = i + 1; j < bodies.length; j++) {
+      if (isColliding(bodies[i], bodies[j])) {
+        collisions.push([bodies[i], bodies[j]]);
+      }
+    }
+  }
+
+  for (var i = 0; i < collisions.length; i++) {
+    if (collisions[i][0].collision !== undefined) {
+      collisions[i][0].collision(collisions[i][1]);
+    }
+
+    if (collisions[i][1].collision !== undefined) {
+      collisions[i][1].collision(collisions[i][0]);
+    }
+  }
+};
+
 Game.prototype = {
 
   removeBody: function(body) {
@@ -320,6 +384,8 @@ Game.prototype = {
   removePlayer: function(name) {
     this.removeBody(this.players[name]);
     delete this.players[name];
+    console.log('player death', name);
+    socket.emit('player death', name);
   },
 
   addBody: function(body) {
@@ -327,11 +393,10 @@ Game.prototype = {
   },
 
   update: function() {
-    
     for (var i = this.bodies.length - 1; i >= 0; i--) {
       this.bodies[i].update();
     };
-    
+    reportCollisions(this.bodies);
     if (this.myName in this.players) {
       var newData = {
         name: this.myName,
@@ -350,10 +415,14 @@ Game.prototype = {
 }
 
 module.exports = Game;
-},{"./Dude":2}],6:[function(require,module,exports){
+},{"./Dude":2,"./geom":6}],6:[function(require,module,exports){
 var geom = {
   translate: function(point, translation) {
-    return { x: point.x + translation.x, y: point.y + translation.y, color: point.color };
+    return { 
+      x: point.x + translation.x, 
+      y: point.y + translation.y, 
+      color: point.color 
+    };
   },
 
   vectorTo: function(point1, point2) {
@@ -373,7 +442,8 @@ var geom = {
   },
 
   distance: function(point1, point2) {
-    return Math.sqrt(Math.pow((point2.y - point1.y), 2) + Math.pow((point2.x - point1.x), 2));
+    return Math.sqrt(Math.pow((point2.y - point1.y), 2) +
+           Math.pow((point2.x - point1.x), 2));
   },
 
   midPoint: function(point1, point2) {
@@ -392,7 +462,32 @@ var geom = {
 
   equal: function(point1, point2) {
     return point1.x === point2.x && point1.y === point2.y;
+  },
+
+  linesIntersecting: function(a, b) {
+    var d = (b[1].y - b[0].y) * (a[1].x - a[0].x) -
+        (b[1].x - b[0].x) * (a[1].y - a[0].y);
+    var n1 = (b[1].x - b[0].x) * (a[0].y - b[0].y) -
+        (b[1].y - b[0].y) * (a[0].x - b[0].x);
+    var n2 = (a[1].x - a[0].x) * (a[0].y - b[0].y) -
+        (a[1].y - a[0].y) * (a[0].x - b[0].x);
+
+    if (d === 0.0) return false;
+    return n1 / d >= 0 && n1 / d <= 1 && n2 / d >= 0 && n2 / d <= 1;
+  },
+
+  pointsToLines: function(points) {
+    var lines = [];
+    var previous = points[0];
+    for (var i = 1, len = points.length; i < len; i++) {
+      lines.push([previous, points[i]]);
+      previous = points[i];
+    }
+
+    lines.push([previous, lines[0][0]]); // end to beginning
+    return lines;
   }
+
 };
 
 module.exports = geom;

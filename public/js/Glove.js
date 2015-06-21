@@ -1,5 +1,8 @@
+//var Dude = require('./Dude.js');
+//console.log('dude', Dude);
 var drawer = require('./Drawer');
 var geom = require('./geom');
+
 
 var Glove = function(game, start, angle, parent) {
   this.game = game;
@@ -11,10 +14,22 @@ var Glove = function(game, start, angle, parent) {
   this.growDirection = 1;
   this.maxSize = 40;
   this.size = this.maxSize;
-  this.firstVelState = this.velocity;
 };
 
 Glove.prototype = {
+
+  collision: function(otherBody) {
+    if (otherBody.name && otherBody.name !== this.parent.name) {
+      this.reverse();
+      console.log(this.size, 'het', this.shouldReduce);
+      this.game.removePlayer(otherBody.name);
+    }
+  },
+
+  reverse: function() {
+    this.shouldReduce = true;
+    this.velocity = geom.reverseVector(this.velocity);
+  },
 
   update: function() {
     if (this.size <= 0) {
@@ -22,13 +37,13 @@ Glove.prototype = {
       this.game.removeBody(this);
       return;
     }
+    
     if (this.shouldReduce) {
       this.size--;
     }
-    if (geom.distance(this.points[0], this.points[1]) > this.maxSize) {
-      this.firstVelState = this.velocity;
-      this.shouldReduce = true;
-      this.velocity = geom.reverseVector(this.velocity);
+
+    if (!this.shouldReduce && geom.distance(this.points[0], this.points[1]) > this.maxSize) {      
+      this.reverse();
     }
     this.points[1] = geom.translate(this.points[1], this.velocity);
     

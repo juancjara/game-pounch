@@ -3,8 +3,10 @@ var drawer = require('./Drawer');
 var geom = require('./geom');
 var Glove = require('./Glove');
 
-var Dude = function(game, location, noMoves) {
+var Dude = function(game, location, noMoves, name) {
+  this.name = name;
   this.game = game;
+  this.glove;
   this.angle = location.angle;
   this.size = {x: 50, y: 50};
   this.center = location.center;
@@ -12,7 +14,7 @@ var Dude = function(game, location, noMoves) {
   this.keyboarder = new Keyboarder();
   this.velocity = { x: 0, y: 0 };
   this.noMoreMoves = !noMoves;
-  this.speed = 2;
+  this.speed = 4;
   this.possibleMoves = [
     {
       keys: [this.keyboarder.KEYS.UP, this.keyboarder.KEYS.RIGHT],
@@ -80,6 +82,7 @@ Dude.prototype = {
   },
 
   moveAgain: function() {
+    this.glove = null;
     this.noMoreMoves = false;
   },
 
@@ -108,16 +111,10 @@ Dude.prototype = {
   update: function() {
     if (this.noMoreMoves) return;
     if (this.keyboarder.isDown(this.keyboarder.KEYS.CTRL)) {
-      var gloveCenter = {
-        x: this.center.x,
-        y: this.center.y - this.size.y/2 - 1
-      }
       var midPoint = geom.midPoint(this.points[0], this.points[1]);
       this.noMoreMoves = true;
-      this.game.addBody(new Glove(this.game,
-                                  midPoint,
-                                  this.angle, 
-                                  this));
+      this.glove = new Glove(this.game, midPoint, this.angle, this);
+      this.game.addBody(this.glove);
       console.log('hit');
       return;
     }

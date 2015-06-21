@@ -45,7 +45,7 @@ var init = function (socket) {
   socket.on('join', function(name) {
     //TODO user already login, retreive information
     console.log('new player', name);
-    players[name] = {id: socket.id, location: locations[count++]};
+    players[name] = {id: socket.id, location: locations[count++], alive: true};
     io.sockets.emit('new players', players);
   })
 
@@ -57,7 +57,15 @@ var init = function (socket) {
     } 
   }
 
+  socket.on('player death', function(name) {
+    console.log('server player death', name);
+    players[name].alive = false;
+    io.sockets.emit('remove player', name);    
+  })
+
   socket.on('update server', function(someoneData) {
+    if (!(someoneData.name in players)) return;
+    if (!players[someoneData.name].alive) return;
     players[someoneData.name].location = someoneData.location;
     noToMe(someoneData);
   });
