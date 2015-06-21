@@ -3,59 +3,55 @@ var drawer = require('./Drawer');
 var geom = require('./geom');
 var Glove = require('./Glove');
 
-var Dude = function(game, center) {
+var Dude = function(game, location, noMoves) {
   this.game = game;
-  this.angle = 0;
-  this.size = {x: 25, y: 25};
-  this.center = center;
-  this.points = [
-    {x: this.center.x - this.size.x/2, y: this.center.y - this.size.y/2, color: 'red'},
-    {x: this.center.x + this.size.x/2, y: this.center.y - this.size.y/2, color: 'yellow'},
-    {x: this.center.x + this.size.x/2, y: this.center.y + this.size.y/2, color: 'black'},
-    {x: this.center.x - this.size.x/2, y: this.center.y + this.size.y/2, color: 'blue'}
-  ];
+  this.angle = location.angle;
+  this.size = {x: 50, y: 50};
+  this.center = location.center;
+  this.points = location.points;
   this.keyboarder = new Keyboarder();
   this.velocity = { x: 0, y: 0 };
-  this.noMoreMoves = false;
+  this.noMoreMoves = !noMoves;
+  this.speed = 2;
   this.possibleMoves = [
     {
       keys: [this.keyboarder.KEYS.UP, this.keyboarder.KEYS.RIGHT],
-      velocity: {x: 1, y: -1},
+      velocity: {x: this.speed, y: -this.speed},
       angle: Math.PI * 0.25
     },
     {
       keys: [this.keyboarder.KEYS.DOWN, this.keyboarder.KEYS.RIGHT],
-      velocity: {x: 1, y: 1},
+      velocity: {x: this.speed, y: this.speed},
       angle: Math.PI * 0.75
     },
     {
       keys: [this.keyboarder.KEYS.UP, this.keyboarder.KEYS.LEFT],
-      velocity: {x: -1, y: -1},
+      velocity: {x: -this.speed, y: -this.speed},
       angle: Math.PI * 1.75
     },
     {
       keys: [this.keyboarder.KEYS.DOWN, this.keyboarder.KEYS.LEFT],
-      velocity: {x: -1, y: 1},
+      velocity: {x: -this.speed, y: this.speed},
       angle: Math.PI * 1.25
     },
     {
       keys: [this.keyboarder.KEYS.UP],
-      velocity: {x: 0, y: -1},
+      velocity: {x: 0, y: -this.speed},
       angle: 0
     },
     {
       keys: [this.keyboarder.KEYS.DOWN],
-      velocity: {x: 0, y: 1},
+      velocity: {x: 0, y: this.speed},
       angle: Math.PI
     },
     {
       keys: [this.keyboarder.KEYS.RIGHT],
-      velocity: {x: 1, y: 0},
+      velocity: {x: this.speed, y: 0},
       angle: Math.PI * 0.5
     },
     {
       keys: [this.keyboarder.KEYS.LEFT],
-      velocity: {x: -1, y: 0},
+      velocity: {x: -this.speed, y: 0},
       angle: Math.PI * 1.5
     }
   ];
@@ -68,6 +64,20 @@ var moveBody = function(body, center) {
 };
 
 Dude.prototype = {
+
+  serialize: function() {
+    return {
+      center: this.center,
+      points: this.points,
+      angle: this.angle
+    }
+  },
+
+  updateStatus: function(data) {
+    this.center = data.center;
+    this.angle = data.angle;
+    this.points = data.points;
+  },
 
   moveAgain: function() {
     this.noMoreMoves = false;
