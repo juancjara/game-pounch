@@ -1,4 +1,5 @@
 var players = {};
+var gameState = {};
 var count = 0;
 
 function generatePoints(center, size) {
@@ -56,6 +57,10 @@ var init = function (socket) {
       }
     } 
   }
+
+  socket.on('new thing', function(data) {
+
+  })
 
   socket.on('player death', function(name) {
     console.log('server player death', name);
