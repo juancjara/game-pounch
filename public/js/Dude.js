@@ -4,6 +4,7 @@ var geom = require('./geom');
 var Glove = require('./Glove');
 
 var Dude = function(game, location, noMoves, name) {
+  this.type = 'player';
   this.name = name;
   this.game = game;
   this.glove;
@@ -69,15 +70,11 @@ Dude.prototype = {
 
   serialize: function() {
     return {
-      center: this.center,
-      points: this.points,
-      angle: this.angle
+      points: this.points
     }
   },
 
   updateStatus: function(data) {
-    this.center = data.center;
-    this.angle = data.angle;
     this.points = data.points;
   },
 
@@ -110,12 +107,13 @@ Dude.prototype = {
 
   update: function() {
     if (this.noMoreMoves) return;
+
     if (this.keyboarder.isDown(this.keyboarder.KEYS.CTRL)) {
+      console.log('CTRL prssed');
       var midPoint = geom.midPoint(this.points[0], this.points[1]);
       this.noMoreMoves = true;
-      this.glove = new Glove(this.game, midPoint, this.angle, this);
-      this.game.addBody(this.glove);
-      console.log('hit');
+      this.glove = new Glove(this.game, midPoint, this.angle, this, true);
+      this.game.addThing(this.glove);
       return;
     }
 

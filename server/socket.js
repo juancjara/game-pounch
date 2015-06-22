@@ -1,5 +1,8 @@
 var players = {};
-var gameState = {};
+var gameState = {
+  pause: false,
+  entities: {}
+};
 var count = 0;
 
 function generatePoints(center, size) {
@@ -46,34 +49,65 @@ var init = function (socket) {
   socket.on('join', function(name) {
     //TODO user already login, retreive information
     console.log('new player', name);
-    players[name] = {id: socket.id, location: locations[count++], alive: true};
-    io.sockets.emit('new players', players);
+    gameState.entities[name] = {
+      name: name,
+      socketID: socket.id,
+      location: locations[count++],
+      alive: true,
+      type: 'player'
+    };
+    console.log('now players', gameState.entities);
+    io.sockets.emit('new players', gameState.entities);
   })
 
-  function noToMe(data) {
-    for(var k in players) {
+  socket.on('ready', function(name) {
+    io.sockets.emit('start game');
+  })
+
+  socket.on('add thing', function(thing) {
+    //console.log('add thing', thing);
+    gameState.entities[thing.name] = {
+      name: thing.name,
+      socketID: socket.id,
+      locations: this.location,
+      type: 'glove'
+    };
+    noToMe(thing, 'update thing');
+  })
+
+  function noToMe(data, messageName) {
+    for(var k in gameState.entities) {
       if (k !== data.name) {
-        socket.broadcast.to(players[k].id).emit('update player', data);
+        socket.broadcast.to(gameState.entities[k].socketID)
+          .emit(messageName, data);
       }
-    } 
+    }
   }
 
-  socket.on('new thing', function(data) {
-
+  socket.on('remove element', function(name) {
+    //console.log('server player death', name);
+    var elementToRemove = gameState.entities[name];
+    if (elementToRemove.type === 'player') {
+      elementToRemove.alive = false;
+    }
+    if (elementToRemove.type === 'glove') {
+      delete gameState.entities[name];
+    }
+    console.log(gameState.entities);
+    io.sockets.emit('element death', name);
   })
 
-  socket.on('player death', function(name) {
-    console.log('server player death', name);
-    players[name].alive = false;
-    io.sockets.emit('remove player', name);    
-  })
-
-  socket.on('update server', function(someoneData) {
-    if (!(someoneData.name in players)) return;
-    if (!players[someoneData.name].alive) return;
-    players[someoneData.name].location = someoneData.location;
-    noToMe(someoneData);
+  socket.on('update server', function(something) {
+    if (!(something.name in gameState.entities)) return;
+    var entity = gameState.entities[something.name];
+    if (entity.type === 'player' && !entity.alive) return;
+    entity.location = something.location;
+    // if (entity.type === 'glove') {
+    //   console.log(entity.location);
+    // }
+    noToMe(something, 'update thing');
   });
+
 
 }
 
