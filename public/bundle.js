@@ -42,7 +42,8 @@ var drawer = require('./Drawer');
 var geom = require('./geom');
 var Glove = require('./Glove');
 
-var Dude = function(game, location, noMoves, name) {
+var Dude = function(game, location, name) {
+  console.log('Dude', name);
   this.name = name;
   this.game = game;
   this.glove;
@@ -52,7 +53,7 @@ var Dude = function(game, location, noMoves, name) {
   this.points = location.points;
   this.keyboarder = new Keyboarder();
   this.velocity = { x: 0, y: 0 };
-  this.noMoreMoves = !noMoves;
+  this.noMoreMoves = false;
   this.speed = 4;
   this.possibleMoves = [
     {
@@ -108,16 +109,13 @@ Dude.prototype = {
 
   serialize: function() {
     return {
-      center: this.center,
-      points: this.points,
-      angle: this.angle
+      name: this.name, 
+      location: {
+        center: this.center,
+        points: this.points,
+        angle: this.angle
+      }
     }
-  },
-
-  updateStatus: function(data) {
-    this.center = data.center;
-    this.angle = data.angle;
-    this.points = data.points;
   },
 
   moveAgain: function() {
@@ -153,8 +151,8 @@ Dude.prototype = {
       var midPoint = geom.midPoint(this.points[0], this.points[1]);
       this.noMoreMoves = true;
       this.glove = new Glove(this.game, midPoint, this.angle, this);
-      this.game.addBody(this.glove);
-      console.log('hit');
+      this.game.addThing(this.glove);
+      console.log('launch glove');
       return;
     }
 
@@ -179,15 +177,13 @@ Dude.prototype = {
 
 module.exports = Dude;
 
-},{"./Drawer":1,"./Glove":3,"./Keyboarder":4,"./geom":6}],3:[function(require,module,exports){
-//var Dude = require('./Dude.js');
-//console.log('dude', Dude);
+},{"./Drawer":1,"./Glove":3,"./Keyboarder":4,"./geom":8}],3:[function(require,module,exports){
 var drawer = require('./Drawer');
 var geom = require('./geom');
 
-
 var Glove = function(game, start, angle, parent) {
   this.game = game;
+  this.name = 'glove' + parent.name;
   this.parent = parent;
   this.velocity = geom.rotate({x: 0, y: -1}, { x: 0, y: 0 }, angle);
   this.angle = angle;
@@ -208,6 +204,15 @@ Glove.prototype = {
     }
   },
 
+  serialize: function() {
+    return {
+      name: this.name,
+      location: {
+        points: this.points
+      }
+    }    
+  },
+
   reverse: function() {
     this.shouldReduce = true;
     this.velocity = geom.reverseVector(this.velocity);
@@ -224,7 +229,8 @@ Glove.prototype = {
       this.size--;
     }
 
-    if (!this.shouldReduce && geom.distance(this.points[0], this.points[1]) > this.maxSize) {      
+    if (!this.shouldReduce &&
+        geom.distance(this.points[0], this.points[1]) > this.maxSize) {      
       this.reverse();
     }
     this.points[1] = geom.translate(this.points[1], this.velocity);
@@ -238,7 +244,7 @@ Glove.prototype = {
 }
 
 module.exports = Glove;
-},{"./Drawer":1,"./geom":6}],4:[function(require,module,exports){
+},{"./Drawer":1,"./geom":8}],4:[function(require,module,exports){
 var Keyboarder = function() {
   var keyState = {};
 
@@ -259,15 +265,58 @@ var Keyboarder = function() {
 
 module.exports = Keyboarder;
 },{}],5:[function(require,module,exports){
+var drawer = require('./Drawer');
+
+var Player = function(location, name) {
+  console.log('Player', name);
+  this.name = name;
+  this.points = location.points;
+};
+
+Player.prototype = {
+
+  updateData: function(location) {
+    this.points = location.points;
+  },
+
+  draw: function(screen) {
+    drawer.drawLinesFromPoints(screen, this.points);
+  }
+
+};
+
+module.exports = Player;
+},{"./Drawer":1}],6:[function(require,module,exports){
+var drawer = require('./Drawer');
+
+var SimpleGlove = function(location, name) {
+  this.name = name;
+  this.points = location.points;
+};
+
+SimpleGlove.prototype = {
+
+  updateData: function(location) {
+    this.points = location.points;
+  },
+
+  draw: function(screen) {
+    drawer.drawLinesFromPoints(screen, this.points);
+  }
+}
+
+module.exports = SimpleGlove;
+},{"./Drawer":1}],7:[function(require,module,exports){
 var Dude = require('./Dude');
+var Player = require('./Player');
 var geom = require('./geom');
+var SimpleGlove = require('./SimpleGlove');
 //var socket = require('./socket');
 var socket = io();
 
 var Game = function(name) {
   this.myName = name;
-  this.players = {};
-  this.bodies = [];
+  this.bodies = {};
   var self = this;
 /*
   var testData = {
@@ -285,34 +334,37 @@ var Game = function(name) {
   this.bodies.push(someoneElse);
 */
   socket.emit('join', name);
+
   socket.on('new players', function(players) {
-    console.log('new players');
+  
     for (var k in players) {
-      if (!(k in self.players)) {
-        var player = new Dude(self, players[k].location, self.myName === k, k);
-        self.bodies.push(player);
-        self.players[k] = player;
+      if (!(k in self.bodies)) {
+        var playerr;
+        if (self.myName === k) {
+          player = new Dude(self, players[k].location, k); 
+        } else {
+          player = new Player(players[k].location, k);
+        }
+        self.bodies[k] = player;
       }
     }
   })
 
-  socket.on('update player', function(updatePlayer) {
-    if (updatePlayer.name in self.players) {
-      self.players[updatePlayer.name].updateStatus(updatePlayer.location);
-    } else {
-      console.log('not in list', updatePlayer.name);
-      self.removeBody(self.players[updatePlayer.name]);
-      delete self.players[updatePlayer.name];
-    }
-  });
-
-  socket.on('remove player', function(name) {
-    console.log('player death socket on', name)
-    if (name in self.players) {
-      self.removeBody(self.players[name]);
-      delete self.players[name];
+  socket.on('add thing', function(thing) {
+    if (!(thing.name in self.bodies)) {
+      self.addBody(new SimpleGlove(thing.location, thing.name));
     }
   })
+
+  socket.on('player rip', self.removePlayer);
+
+  socket.on('update client', function(players) {
+    for (var k in players) {
+      if (k in self.bodies && self.bodies[k].updateData) {
+        self.bodies[k].updateData(players[k].location);  
+      }
+    }
+  });
 
   var screen = document.getElementById('screen').getContext('2d');
   
@@ -322,12 +374,16 @@ var Game = function(name) {
   };
 
   var self = this;
+  // var tick = function() {
+  //   self.update();
+  //   self.draw(screen);
+  //   requestAnimationFrame(tick);
+  // }
+  // tick();
   var tick = function() {
-    self.update();
-    self.draw(screen);
-    requestAnimationFrame(tick);
-  }
-  tick();
+    self.update(); self.draw(screen);
+  };
+  setInterval(tick, 30);
 };
 
 var anyLinesIntersecting = function(lines1, lines2) {
@@ -375,47 +431,54 @@ var reportCollisions = function(bodies) {
 Game.prototype = {
 
   removeBody: function(body) {
-    var bodyIndex = this.bodies.indexOf(body);
-    if (bodyIndex !== -1) {
-      this.bodies.splice(bodyIndex, 1);
-    }
+    delete this.bodies[body.name];
   },
 
   removePlayer: function(name) {
-    this.removeBody(this.players[name]);
-    delete this.players[name];
-    console.log('player death', name);
-    socket.emit('player death', name);
+    if (name in self.bodies) {
+      self.bodies[name].rip();
+      delete self.bodies[name];
+    }
+  },
+
+  addThing: function(body) {
+    socket.emit('new thing', body.serialize());
+    this.addBody(body);
   },
 
   addBody: function(body) {
-    this.bodies.push(body);
+    if (!(body.name in this.bodies)) {
+      this.bodies[body.name] = body;
+    }
   },
 
   update: function() {
-    for (var i = this.bodies.length - 1; i >= 0; i--) {
-      this.bodies[i].update();
-    };
-    reportCollisions(this.bodies);
-    if (this.myName in this.players) {
-      var newData = {
-        name: this.myName,
-        location: this.players[this.myName].serialize()
-      };
-      socket.emit('update server', newData);
+    for(var k in this.bodies) {
+      if (this.bodies[k].update) {
+        this.bodies[k].update();
+      }
     }
+
+    var data = [this.bodies[this.myName].serialize()];
+    var glove = 'glove' + this.myName;
+    if (glove in this.bodies) {
+      data.push(this.bodies[glove].serialize());
+    }
+    socket.emit('update server', data);
+    //reportCollisions(this.bodies);
   },
 
   draw: function(screen) {
     screen.clearRect(0, 0, this.size.x, this.size.y);
-    for (var i = this.bodies.length - 1; i >= 0; i--) {
-      this.bodies[i].draw(screen);
-    };
+
+    for(var k in this.bodies) {
+      this.bodies[k].draw(screen);
+    }
   }
 }
 
 module.exports = Game;
-},{"./Dude":2,"./geom":6}],6:[function(require,module,exports){
+},{"./Dude":2,"./Player":5,"./SimpleGlove":6,"./geom":8}],8:[function(require,module,exports){
 var geom = {
   translate: function(point, translation) {
     return { 
@@ -491,7 +554,7 @@ var geom = {
 };
 
 module.exports = geom;
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var Game = require('./game');
 
 var startGame = function() {
@@ -506,4 +569,4 @@ btn.addEventListener('click', startGame);
 window.addEventListener('load', function() {
 });
 */
-},{"./game":5}]},{},[7]);
+},{"./game":7}]},{},[9]);

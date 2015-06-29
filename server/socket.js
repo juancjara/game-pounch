@@ -1,5 +1,7 @@
 var players = {};
-var gameState = {};
+var gameState = {
+  bodies: {}
+};
 var count = 0;
 
 function generatePoints(center, size) {
@@ -50,29 +52,27 @@ var init = function (socket) {
     io.sockets.emit('new players', players);
   })
 
-  function noToMe(data) {
-    for(var k in players) {
-      if (k !== data.name) {
-        socket.broadcast.to(players[k].id).emit('update player', data);
-      }
-    } 
-  }
-
-  socket.on('new thing', function(data) {
-
-  })
+  socket.on('new thing', function(obj) {
+    players[obj.name] = {
+      id: socket.id,
+      location: obj.location
+    }
+    io.emit('add thing', obj);
+  });
 
   socket.on('player death', function(name) {
     console.log('server player death', name);
     players[name].alive = false;
-    io.sockets.emit('remove player', name);    
-  })
+    io.sockets.emit('player rip', name);    
+  });
 
-  socket.on('update server', function(someoneData) {
-    if (!(someoneData.name in players)) return;
-    if (!players[someoneData.name].alive) return;
-    players[someoneData.name].location = someoneData.location;
-    noToMe(someoneData);
+  socket.on('update server', function(suchData) {
+    for (var i = suchData.length - 1; i >= 0; i--) {
+      var elem = suchData[i];
+      players[elem.name].location = elem.location;
+    };
+    //players[someoneData.name].location = someoneData.location;
+    io.sockets.emit('update client', players);
   });
 
 }

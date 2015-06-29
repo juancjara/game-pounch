@@ -3,7 +3,8 @@ var drawer = require('./Drawer');
 var geom = require('./geom');
 var Glove = require('./Glove');
 
-var Dude = function(game, location, noMoves, name) {
+var Dude = function(game, location, name) {
+  console.log('Dude', name);
   this.name = name;
   this.game = game;
   this.glove;
@@ -13,7 +14,7 @@ var Dude = function(game, location, noMoves, name) {
   this.points = location.points;
   this.keyboarder = new Keyboarder();
   this.velocity = { x: 0, y: 0 };
-  this.noMoreMoves = !noMoves;
+  this.noMoreMoves = false;
   this.speed = 4;
   this.possibleMoves = [
     {
@@ -69,16 +70,13 @@ Dude.prototype = {
 
   serialize: function() {
     return {
-      center: this.center,
-      points: this.points,
-      angle: this.angle
+      name: this.name, 
+      location: {
+        center: this.center,
+        points: this.points,
+        angle: this.angle
+      }
     }
-  },
-
-  updateStatus: function(data) {
-    this.center = data.center;
-    this.angle = data.angle;
-    this.points = data.points;
   },
 
   moveAgain: function() {
@@ -114,8 +112,8 @@ Dude.prototype = {
       var midPoint = geom.midPoint(this.points[0], this.points[1]);
       this.noMoreMoves = true;
       this.glove = new Glove(this.game, midPoint, this.angle, this);
-      this.game.addBody(this.glove);
-      console.log('hit');
+      this.game.addThing(this.glove);
+      console.log('launch glove');
       return;
     }
 

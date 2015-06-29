@@ -1,11 +1,9 @@
-//var Dude = require('./Dude.js');
-//console.log('dude', Dude);
 var drawer = require('./Drawer');
 var geom = require('./geom');
 
-
 var Glove = function(game, start, angle, parent) {
   this.game = game;
+  this.name = 'glove' + parent.name;
   this.parent = parent;
   this.velocity = geom.rotate({x: 0, y: -1}, { x: 0, y: 0 }, angle);
   this.angle = angle;
@@ -26,6 +24,15 @@ Glove.prototype = {
     }
   },
 
+  serialize: function() {
+    return {
+      name: this.name,
+      location: {
+        points: this.points
+      }
+    }    
+  },
+
   reverse: function() {
     this.shouldReduce = true;
     this.velocity = geom.reverseVector(this.velocity);
@@ -42,7 +49,8 @@ Glove.prototype = {
       this.size--;
     }
 
-    if (!this.shouldReduce && geom.distance(this.points[0], this.points[1]) > this.maxSize) {      
+    if (!this.shouldReduce &&
+        geom.distance(this.points[0], this.points[1]) > this.maxSize) {      
       this.reverse();
     }
     this.points[1] = geom.translate(this.points[1], this.velocity);

@@ -1,12 +1,13 @@
 var Dude = require('./Dude');
+var Player = require('./Player');
 var geom = require('./geom');
+var SimpleGlove = require('./SimpleGlove');
 //var socket = require('./socket');
 var socket = io();
 
 var Game = function(name) {
   this.myName = name;
-  this.players = {};
-  this.bodies = [];
+  this.bodies = {};
   var self = this;
 /*
   var testData = {
@@ -24,34 +25,37 @@ var Game = function(name) {
   this.bodies.push(someoneElse);
 */
   socket.emit('join', name);
+
   socket.on('new players', function(players) {
-    console.log('new players');
+  
     for (var k in players) {
-      if (!(k in self.players)) {
-        var player = new Dude(self, players[k].location, self.myName === k, k);
-        self.bodies.push(player);
-        self.players[k] = player;
+      if (!(k in self.bodies)) {
+        var playerr;
+        if (self.myName === k) {
+          player = new Dude(self, players[k].location, k); 
+        } else {
+          player = new Player(players[k].location, k);
+        }
+        self.bodies[k] = player;
       }
     }
   })
 
-  socket.on('update player', function(updatePlayer) {
-    if (updatePlayer.name in self.players) {
-      self.players[updatePlayer.name].updateStatus(updatePlayer.location);
-    } else {
-      console.log('not in list', updatePlayer.name);
-      self.removeBody(self.players[updatePlayer.name]);
-      delete self.players[updatePlayer.name];
-    }
-  });
-
-  socket.on('remove player', function(name) {
-    console.log('player death socket on', name)
-    if (name in self.players) {
-      self.removeBody(self.players[name]);
-      delete self.players[name];
+  socket.on('add thing', function(thing) {
+    if (!(thing.name in self.bodies)) {
+      self.addBody(new SimpleGlove(thing.location, thing.name));
     }
   })
+
+  socket.on('player rip', self.removePlayer);
+
+  socket.on('update client', function(players) {
+    for (var k in players) {
+      if (k in self.bodies && self.bodies[k].updateData) {
+        self.bodies[k].updateData(players[k].location);  
+      }
+    }
+  });
 
   var screen = document.getElementById('screen').getContext('2d');
   
@@ -61,12 +65,16 @@ var Game = function(name) {
   };
 
   var self = this;
+  // var tick = function() {
+  //   self.update();
+  //   self.draw(screen);
+  //   requestAnimationFrame(tick);
+  // }
+  // tick();
   var tick = function() {
-    self.update();
-    self.draw(screen);
-    requestAnimationFrame(tick);
-  }
-  tick();
+    self.update(); self.draw(screen);
+  };
+  setInterval(tick, 30);
 };
 
 var anyLinesIntersecting = function(lines1, lines2) {
@@ -114,42 +122,49 @@ var reportCollisions = function(bodies) {
 Game.prototype = {
 
   removeBody: function(body) {
-    var bodyIndex = this.bodies.indexOf(body);
-    if (bodyIndex !== -1) {
-      this.bodies.splice(bodyIndex, 1);
-    }
+    delete this.bodies[body.name];
   },
 
   removePlayer: function(name) {
-    this.removeBody(this.players[name]);
-    delete this.players[name];
-    console.log('player death', name);
-    socket.emit('player death', name);
+    if (name in self.bodies) {
+      self.bodies[name].rip();
+      delete self.bodies[name];
+    }
+  },
+
+  addThing: function(body) {
+    socket.emit('new thing', body.serialize());
+    this.addBody(body);
   },
 
   addBody: function(body) {
-    this.bodies.push(body);
+    if (!(body.name in this.bodies)) {
+      this.bodies[body.name] = body;
+    }
   },
 
   update: function() {
-    for (var i = this.bodies.length - 1; i >= 0; i--) {
-      this.bodies[i].update();
-    };
-    reportCollisions(this.bodies);
-    if (this.myName in this.players) {
-      var newData = {
-        name: this.myName,
-        location: this.players[this.myName].serialize()
-      };
-      socket.emit('update server', newData);
+    for(var k in this.bodies) {
+      if (this.bodies[k].update) {
+        this.bodies[k].update();
+      }
     }
+
+    var data = [this.bodies[this.myName].serialize()];
+    var glove = 'glove' + this.myName;
+    if (glove in this.bodies) {
+      data.push(this.bodies[glove].serialize());
+    }
+    socket.emit('update server', data);
+    //reportCollisions(this.bodies);
   },
 
   draw: function(screen) {
     screen.clearRect(0, 0, this.size.x, this.size.y);
-    for (var i = this.bodies.length - 1; i >= 0; i--) {
-      this.bodies[i].draw(screen);
-    };
+
+    for(var k in this.bodies) {
+      this.bodies[k].draw(screen);
+    }
   }
 }
 
