@@ -1,11 +1,11 @@
-var Dude = require('./Dude');
-var Player = require('./Player');
-var geom = require('./geom');
-var SimpleGlove = require('./SimpleGlove');
-//var socket = require('./socket');
-var socket = io();
+import Dude from './Dude';
+import Player from './Player';
+import geom from './geom';
+import SimpleGlove from './SimpleGlove';
 
-var Game = function(name) {
+let socket = io();
+
+let Game = function(name) {
   this.myName = name;
   this.bodies = {};
   var self = this;
@@ -168,4 +168,4 @@ Game.prototype = {
   }
 }
 
-module.exports = Game;
+export default Game;

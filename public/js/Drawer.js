@@ -32,6 +32,8 @@ var drawLinesFromPoints = function(screen, points) {
   }
 };
 
-module.exports = drawer = function() {};
+let drawer = function() {};
 drawer.drawRect = drawRect;
 drawer.drawLinesFromPoints = drawLinesFromPoints;
+
+export default drawer;

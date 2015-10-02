@@ -1,7 +1,7 @@
-var Keyboarder = require('./Keyboarder');
-var drawer = require('./Drawer');
-var geom = require('./geom');
-var Glove = require('./Glove');
+import Keyboarder from './Keyboarder';
+import drawer from './Drawer';
+import geom from './geom';
+import Glove from './Glove';
 
 var Dude = function(game, location, name) {
   console.log('Dude', name);
@@ -136,4 +136,4 @@ Dude.prototype = {
 
 }
 
-module.exports = Dude;
+export default Dude;

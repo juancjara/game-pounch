@@ -1,4 +1,4 @@
-var drawer = require('./Drawer');
+import drawer from './Drawer';
 
 var SimpleGlove = function(location, name) {
   this.name = name;
@@ -16,4 +16,4 @@ SimpleGlove.prototype = {
   }
 }
 
-module.exports = SimpleGlove;
+export default SimpleGlove;

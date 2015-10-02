@@ -72,4 +72,4 @@ var geom = {
 
 };
 
-module.exports = geom;
+export default geom;

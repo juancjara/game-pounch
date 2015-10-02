@@ -1,11 +1,13 @@
-var Game = require('./game');
+import Game from './game';
 
-var startGame = function() {
+let btn = document.getElementById('start');
+let input = document.getElementById('name');
+
+let startGame = function() {
   btn.removeEventListener('click', startGame);
   new Game(input.value);
-}
-var btn = document.getElementById('start');
-var input = document.getElementById('name');
+};
+
 btn.addEventListener('click', startGame);
 
 /*

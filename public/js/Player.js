@@ -1,4 +1,4 @@
-var drawer = require('./Drawer');
+import drawer from './Drawer';
 
 var Player = function(location, name) {
   console.log('Player', name);
@@ -18,4 +18,4 @@ Player.prototype = {
 
 };
 
-module.exports = Player;
+export default Player;

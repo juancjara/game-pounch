@@ -1,5 +1,5 @@
 {
-  "name": "game-pounch",
+  "name": "game-punch",
   "version": "0.0.0",
   "description": "game",
   "main": "index.js",
@@ -11,15 +11,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/juancjara/game-pounch.git"
+    "url": "git://github.com/juancjara/game-punch.git"
   },
   "author": "",
   "license": "BSD-2-Clause",
   "bugs": {
-    "url": "https://github.com/juancjara/game-pounch/issues"
+    "url": "https://github.com/juancjara/game-punch/issues"
   },
   "dependencies": {
+    "babelify": "^6.3.0",
     "express": "~4.12.4",
-    "socket.io": "~1.3.5"
+    "socket.io": "~1.3.5",
+    "watchify": "^3.4.0"
+  },
+  "browserify": {
+    "transform": [
+      "babelify"
+    ]
   }
 }

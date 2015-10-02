@@ -16,4 +16,4 @@ var Keyboarder = function() {
   this.KEYS = {LEFT: 37, RIGHT: 39, UP: 38, DOWN: 40, SPACE: 32, CTRL: 90};
 };
 
-module.exports = Keyboarder;
+export default Keyboarder;

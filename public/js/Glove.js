@@ -1,5 +1,5 @@
-var drawer = require('./Drawer');
-var geom = require('./geom');
+import drawer from './Drawer';
+import geom from './geom';
 
 var Glove = function(game, start, angle, parent) {
   this.game = game;
@@ -63,4 +63,4 @@ Glove.prototype = {
 
 }
 
-module.exports = Glove;
+export default Glove;
