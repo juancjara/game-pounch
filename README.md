@@ -1,2 +1,2 @@
-# game-pounch
+# game-punch
 game
