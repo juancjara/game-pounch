@@ -64,12 +64,7 @@ var _geom = require('./geom');
 
 var _geom2 = _interopRequireDefault(_geom);
 
-var _Glove = require('./Glove');
-
-var _Glove2 = _interopRequireDefault(_Glove);
-
 var Dude = function Dude(game, location, name) {
-  console.log('Dude', name);
   this.name = name;
   this.game = game;
   this.glove;
@@ -126,28 +121,13 @@ var moveBody = function moveBody(body, center) {
 
 Dude.prototype = {
 
-  serialize: function serialize() {
-    return {
-      name: this.name,
-      location: {
-        center: this.center,
-        points: this.points,
-        angle: this.angle
-      }
-    };
-  },
-
-  moveAgain: function moveAgain() {
-    this.glove = null;
-    this.noMoreMoves = false;
-  },
-
   turnTo: function turnTo(newAngle) {
+    var _this = this;
+
     var diff = newAngle - this.angle;
     this.angle = newAngle;
-    var center = this.center;
     this.points = this.points.map(function (x) {
-      return _geom2['default'].rotate(x, center, diff);
+      return _geom2['default'].rotate(x, _this.center, diff);
     });
   },
 
@@ -165,14 +145,6 @@ Dude.prototype = {
 
   update: function update() {
     if (this.noMoreMoves) return;
-    if (this.keyboarder.isDown(this.keyboarder.KEYS.CTRL)) {
-      var midPoint = _geom2['default'].midPoint(this.points[0], this.points[1]);
-      this.noMoreMoves = true;
-      this.glove = new _Glove2['default'](this.game, midPoint, this.angle, this);
-      this.game.addThing(this.glove);
-      console.log('launch glove');
-      return;
-    }
 
     var actualMove;
     for (var i = 0, len = this.possibleMoves.length; i < len; i++) {
@@ -195,87 +167,7 @@ Dude.prototype = {
 exports['default'] = Dude;
 module.exports = exports['default'];
 
-},{"./Drawer":1,"./Glove":3,"./Keyboarder":4,"./geom":8}],3:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, '__esModule', {
-  value: true
-});
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-var _Drawer = require('./Drawer');
-
-var _Drawer2 = _interopRequireDefault(_Drawer);
-
-var _geom = require('./geom');
-
-var _geom2 = _interopRequireDefault(_geom);
-
-var Glove = function Glove(game, start, angle, parent) {
-  this.game = game;
-  this.name = 'glove' + parent.name;
-  this.parent = parent;
-  this.velocity = _geom2['default'].rotate({ x: 0, y: -1 }, { x: 0, y: 0 }, angle);
-  this.angle = angle;
-  this.points = [start, _geom2['default'].translate(start, this.velocity)];
-  this.factorInc = 2;
-  this.growDirection = 1;
-  this.maxSize = 40;
-  this.size = this.maxSize;
-};
-
-Glove.prototype = {
-
-  collision: function collision(otherBody) {
-    if (otherBody.name && otherBody.name !== this.parent.name) {
-      this.reverse();
-      console.log(this.size, 'het', this.shouldReduce);
-      this.game.removePlayer(otherBody.name);
-    }
-  },
-
-  serialize: function serialize() {
-    return {
-      name: this.name,
-      location: {
-        points: this.points
-      }
-    };
-  },
-
-  reverse: function reverse() {
-    this.shouldReduce = true;
-    this.velocity = _geom2['default'].reverseVector(this.velocity);
-  },
-
-  update: function update() {
-    if (this.size <= 0) {
-      this.parent.moveAgain();
-      this.game.removeBody(this);
-      return;
-    }
-
-    if (this.shouldReduce) {
-      this.size--;
-    }
-
-    if (!this.shouldReduce && _geom2['default'].distance(this.points[0], this.points[1]) > this.maxSize) {
-      this.reverse();
-    }
-    this.points[1] = _geom2['default'].translate(this.points[1], this.velocity);
-  },
-
-  draw: function draw(screen) {
-    _Drawer2['default'].drawLinesFromPoints(screen, this.points);
-  }
-
-};
-
-exports['default'] = Glove;
-module.exports = exports['default'];
-
-},{"./Drawer":1,"./geom":8}],4:[function(require,module,exports){
+},{"./Drawer":1,"./Keyboarder":3,"./geom":7}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -302,7 +194,7 @@ var Keyboarder = function Keyboarder() {
 exports['default'] = Keyboarder;
 module.exports = exports['default'];
 
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -336,7 +228,7 @@ Player.prototype = {
 exports['default'] = Player;
 module.exports = exports['default'];
 
-},{"./Drawer":1}],6:[function(require,module,exports){
+},{"./Drawer":1}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -368,7 +260,7 @@ SimpleGlove.prototype = {
 exports['default'] = SimpleGlove;
 module.exports = exports['default'];
 
-},{"./Drawer":1}],7:[function(require,module,exports){
+},{"./Drawer":1}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -396,56 +288,10 @@ var _SimpleGlove2 = _interopRequireDefault(_SimpleGlove);
 var socket = io();
 
 var Game = function Game(name) {
+  var _this = this;
+
   this.myName = name;
-  this.bodies = {};
-  var self = this;
-  /*
-    var testData = {
-      center: {x: 300,y: 200},
-      points: [
-        {x: 275, y: 175, color: 'black'},
-        {x: 325, y: 175, color: 'black'},
-        {x: 325, y: 225, color: 'black'},
-        {x: 275, y: 225, color: 'black'}
-      ], 
-      angle: 0
-    }
-    var someoneElse = new Dude(this, testData, false, 'lel');
-    this.players['lel'] = someoneElse;
-    this.bodies.push(someoneElse);
-  */
-  socket.emit('join', name);
-
-  socket.on('new players', function (players) {
-
-    for (var k in players) {
-      if (!(k in self.bodies)) {
-        var playerr;
-        if (self.myName === k) {
-          player = new _Dude2['default'](self, players[k].location, k);
-        } else {
-          player = new _Player2['default'](players[k].location, k);
-        }
-        self.bodies[k] = player;
-      }
-    }
-  });
-
-  socket.on('add thing', function (thing) {
-    if (!(thing.name in self.bodies)) {
-      self.addBody(new _SimpleGlove2['default'](thing.location, thing.name));
-    }
-  });
-
-  socket.on('player rip', self.removePlayer);
-
-  socket.on('update client', function (players) {
-    for (var k in players) {
-      if (k in self.bodies && self.bodies[k].updateData) {
-        self.bodies[k].updateData(players[k].location);
-      }
-    }
-  });
+  this.bodies = [];
 
   var screen = document.getElementById('screen').getContext('2d');
 
@@ -454,17 +300,36 @@ var Game = function Game(name) {
     y: screen.canvas.height
   };
 
-  var self = this;
-  // var tick = function() {
-  //   self.update();
-  //   self.draw(screen);
-  //   requestAnimationFrame(tick);
-  // }
-  // tick();
-  var tick = function tick() {
-    self.update();self.draw(screen);
+  var position = {
+    center: { x: 300, y: 200 },
+    points: [{ x: 275, y: 175, color: 'red' }, { x: 325, y: 175, color: 'yellow' }, { x: 325, y: 225, color: 'green' }, { x: 275, y: 225, color: 'black' }],
+    angle: 0
   };
-  setInterval(tick, 30);
+
+  this.bodies.push(new _Dude2['default'](this, position, 'name'));
+
+  var tick = function tick() {
+    _this.update();
+    _this.draw(screen);
+    requestAnimationFrame(tick);
+  };
+  tick();
+};
+
+Game.prototype = {
+
+  update: function update() {
+    for (var i = 0; i < this.bodies.length; i++) {
+      this.bodies[i].update();
+    }
+  },
+
+  draw: function draw(screen) {
+    screen.clearRect(0, 0, this.size.x, this.size.y);
+    for (var i = 0; i < this.bodies.length; i++) {
+      this.bodies[i].draw(screen);
+    }
+  }
 };
 
 var anyLinesIntersecting = function anyLinesIntersecting(lines1, lines2) {
@@ -509,59 +374,10 @@ var reportCollisions = function reportCollisions(bodies) {
   }
 };
 
-Game.prototype = {
-
-  removeBody: function removeBody(body) {
-    delete this.bodies[body.name];
-  },
-
-  removePlayer: function removePlayer(name) {
-    if (name in self.bodies) {
-      self.bodies[name].rip();
-      delete self.bodies[name];
-    }
-  },
-
-  addThing: function addThing(body) {
-    socket.emit('new thing', body.serialize());
-    this.addBody(body);
-  },
-
-  addBody: function addBody(body) {
-    if (!(body.name in this.bodies)) {
-      this.bodies[body.name] = body;
-    }
-  },
-
-  update: function update() {
-    for (var k in this.bodies) {
-      if (this.bodies[k].update) {
-        this.bodies[k].update();
-      }
-    }
-
-    var data = [this.bodies[this.myName].serialize()];
-    var glove = 'glove' + this.myName;
-    if (glove in this.bodies) {
-      data.push(this.bodies[glove].serialize());
-    }
-    socket.emit('update server', data);
-    //reportCollisions(this.bodies);
-  },
-
-  draw: function draw(screen) {
-    screen.clearRect(0, 0, this.size.x, this.size.y);
-
-    for (var k in this.bodies) {
-      this.bodies[k].draw(screen);
-    }
-  }
-};
-
 exports['default'] = Game;
 module.exports = exports['default'];
 
-},{"./Dude":2,"./Player":5,"./SimpleGlove":6,"./geom":8}],8:[function(require,module,exports){
+},{"./Dude":2,"./Player":4,"./SimpleGlove":5,"./geom":7}],7:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -636,7 +452,7 @@ var geom = {
 exports["default"] = geom;
 module.exports = exports["default"];
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -660,4 +476,4 @@ window.addEventListener('load', function() {
 });
 */
 
-},{"./game":7}]},{},[9]);
+},{"./game":6}]},{},[8]);

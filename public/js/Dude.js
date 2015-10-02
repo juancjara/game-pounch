@@ -1,10 +1,8 @@
 import Keyboarder from './Keyboarder';
 import drawer from './Drawer';
-import geom from './geom';
-import Glove from './Glove';
+import Geom from './geom';
 
 var Dude = function(game, location, name) {
-  console.log('Dude', name);
   this.name = name;
   this.game = game;
   this.glove;
@@ -61,46 +59,34 @@ var Dude = function(game, location, name) {
 };
 
 var moveBody = function(body, center) {
-  var translation = geom.vectorTo(body.center, center);
+  var translation = Geom.vectorTo(body.center, center);
   body.center = center;
-  body.points = body.points.map(function(x) { return geom.translate(x, translation); });
+  body.points = body.points.map((x) => {
+    return Geom.translate(x, translation);
+  });
 };
 
 Dude.prototype = {
 
-  serialize: function() {
-    return {
-      name: this.name, 
-      location: {
-        center: this.center,
-        points: this.points,
-        angle: this.angle
-      }
-    }
-  },
-
-  moveAgain: function() {
-    this.glove = null;
-    this.noMoreMoves = false;
-  },
-
   turnTo: function(newAngle) {
     var diff = newAngle - this.angle;
     this.angle = newAngle;
-    var center = this.center;
-    this.points = this.points.map(function(x) { 
-                                    return geom.rotate(x, center, diff); 
-                                  });
+    this.points = this.points
+      .map((x) => {
+        return Geom.rotate(x, this.center, diff);
+      });
   },
 
   move: function() {
-    this.velocity = geom.translate(this.velocity,
-                                   geom.rotate({ x: 0, y: -0.01 }, { x: 0, y: 0 }, this.angle));
-    moveBody(this, geom.translate(this.center, this.velocity));
+    this.velocity = Geom.translate(this.velocity,
+                                   Geom.rotate({x: 0, y: -0.01},
+                                               {x: 0, y: 0},
+                                               this.angle));
+    moveBody(this, Geom.translate(this.center, this.velocity));
   },
 
   keysPressed: function(keys) {
-    for (var j = 0, len = keys.length; j < len; j++) {
+    for (let j = 0, len = keys.length; j < len; j++) {
       if (!this.keyboarder.isDown(keys[j])) return false;
     }
     return true;
@@ -108,18 +94,10 @@ Dude.prototype = {
 
   update: function() {
     if (this.noMoreMoves) return;
-    if (this.keyboarder.isDown(this.keyboarder.KEYS.CTRL)) {
-      var midPoint = geom.midPoint(this.points[0], this.points[1]);
-      this.noMoreMoves = true;
-      this.glove = new Glove(this.game, midPoint, this.angle, this);
-      this.game.addThing(this.glove);
-      console.log('launch glove');
-      return;
-    }
 
     var actualMove;
-    for (var i = 0, len = this.possibleMoves.length; i < len; i++) {
-       actualMove = this.possibleMoves[i]; 
+    for (let i = 0, len = this.possibleMoves.length; i < len; i++) {
+       actualMove = this.possibleMoves[i];
       if (this.keysPressed(actualMove.keys)) {
         this.velocity = actualMove.velocity;
         this.turnTo(actualMove.angle);
@@ -134,6 +112,6 @@ Dude.prototype = {
     drawer.drawLinesFromPoints(screen, this.points);
   }
 
-}
+};
 
 export default Dude;

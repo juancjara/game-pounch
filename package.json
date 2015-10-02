@@ -7,7 +7,7 @@
     "watchClient": "watchify public/js/main.js -o public/bundle.js",
     "watchServer": "nodemon server.js --ignore public/",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "npm run watchClient & npm run watchServer"
+    "watch": "npm run watchServer & npm run watchClient"
   },
   "repository": {
     "type": "git",

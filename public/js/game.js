@@ -7,74 +7,50 @@ let socket = io();
 
 let Game = function(name) {
   this.myName = name;
-  this.bodies = {};
-  var self = this;
-/*
-  var testData = {
-    center: {x: 300,y: 200},
-    points: [
-      {x: 275, y: 175, color: 'black'},
-      {x: 325, y: 175, color: 'black'},
-      {x: 325, y: 225, color: 'black'},
-      {x: 275, y: 225, color: 'black'}
-    ], 
-    angle: 0
-  }
-  var someoneElse = new Dude(this, testData, false, 'lel');
-  this.players['lel'] = someoneElse;
-  this.bodies.push(someoneElse);
-*/
-  socket.emit('join', name);
-
-  socket.on('new players', function(players) {
-  
-    for (var k in players) {
-      if (!(k in self.bodies)) {
-        var playerr;
-        if (self.myName === k) {
-          player = new Dude(self, players[k].location, k); 
-        } else {
-          player = new Player(players[k].location, k);
-        }
-        self.bodies[k] = player;
-      }
-    }
-  })
-
-  socket.on('add thing', function(thing) {
-    if (!(thing.name in self.bodies)) {
-      self.addBody(new SimpleGlove(thing.location, thing.name));
-    }
-  })
-
-  socket.on('player rip', self.removePlayer);
-
-  socket.on('update client', function(players) {
-    for (var k in players) {
-      if (k in self.bodies && self.bodies[k].updateData) {
-        self.bodies[k].updateData(players[k].location);  
-      }
-    }
-  });
+  this.bodies = [];
 
   var screen = document.getElementById('screen').getContext('2d');
-  
+
   this.size = {
     x: screen.canvas.width,
     y: screen.canvas.height
   };
 
-  var self = this;
-  // var tick = function() {
-  //   self.update();
-  //   self.draw(screen);
-  //   requestAnimationFrame(tick);
-  // }
-  // tick();
-  var tick = function() {
-    self.update(); self.draw(screen);
+  let position = {
+    center: {x: 300,y: 200},
+    points: [
+      {x: 275, y: 175, color: 'red'},
+      {x: 325, y: 175, color: 'yellow'},
+      {x: 325, y: 225, color: 'green'},
+      {x: 275, y: 225, color: 'black'}
+    ],
+    angle: 0
   };
-  setInterval(tick, 30);
+
+  this.bodies.push(new Dude(this, position, 'name'));
+
+  var tick = () => {
+    this.update();
+    this.draw(screen);
+    requestAnimationFrame(tick);
+  };
+  tick();
+};
+
+Game.prototype = {
+
+  update: function() {
+    for (let i = 0; i < this.bodies.length; i++) {
+      this.bodies[i].update();
+    }
+  },
+
+  draw: function(screen) {
+    screen.clearRect(0, 0, this.size.x, this.size.y);
+    for (let i = 0; i < this.bodies.length; i++) {
+      this.bodies[i].draw(screen);
+    }
+  }
 };
 
 var anyLinesIntersecting = function(lines1, lines2) {
@@ -87,7 +63,7 @@ var anyLinesIntersecting = function(lines1, lines2) {
     }
 
     return false;
-  };
+};
 
 var isColliding = function(b1, b2) {
   if (b1 === b2) return false;
@@ -118,54 +94,5 @@ var reportCollisions = function(bodies) {
     }
   }
 };
-
-Game.prototype = {
-
-  removeBody: function(body) {
-    delete this.bodies[body.name];
-  },
-
-  removePlayer: function(name) {
-    if (name in self.bodies) {
-      self.bodies[name].rip();
-      delete self.bodies[name];
-    }
-  },
-
-  addThing: function(body) {
-    socket.emit('new thing', body.serialize());
-    this.addBody(body);
-  },
-
-  addBody: function(body) {
-    if (!(body.name in this.bodies)) {
-      this.bodies[body.name] = body;
-    }
-  },
-
-  update: function() {
-    for(var k in this.bodies) {
-      if (this.bodies[k].update) {
-        this.bodies[k].update();
-      }
-    }
-
-    var data = [this.bodies[this.myName].serialize()];
-    var glove = 'glove' + this.myName;
-    if (glove in this.bodies) {
-      data.push(this.bodies[glove].serialize());
-    }
-    socket.emit('update server', data);
-    //reportCollisions(this.bodies);
-  },
-
-  draw: function(screen) {
-    screen.clearRect(0, 0, this.size.x, this.size.y);
-
-    for(var k in this.bodies) {
-      this.bodies[k].draw(screen);
-    }
-  }
-}
 
 export default Game;

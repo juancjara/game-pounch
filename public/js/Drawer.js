@@ -1,14 +1,14 @@
-var drawRect = function(screen, body, color) {
+let drawRect = function(screen, body, color) {
   screen.fillStyle = color;
   screen.fillRect(body.center.x - body.size.x / 2,
                   body.center.y - body.size.y / 2,
                   body.size.x, body.size.y);
 };
 
-var pointsToLines = function(points) {
-  var lines = [];
-  var previous = points[0];
-  for (var i = 1; i < points.length; i++) {
+let pointsToLines = function(points) {
+  let lines = [];
+  let previous = points[0];
+  for (let i = 1; i < points.length; i++) {
     lines.push([previous, points[i]]);
     previous = points[i];
   }
@@ -17,7 +17,7 @@ var pointsToLines = function(points) {
   return lines;
 };
 
-var drawLine = function(screen, line) {
+let drawLine = function(screen, line) {
   screen.beginPath();
   screen.moveTo(line[0].x, line[0].y);
   screen.lineTo(line[1].x, line[1].y);
@@ -25,9 +25,9 @@ var drawLine = function(screen, line) {
   screen.stroke();
 };
 
-var drawLinesFromPoints = function(screen, points) {
-  var lines = pointsToLines(points);
-  for (var i = 0; i < lines.length; i++) {
+let drawLinesFromPoints = function(screen, points) {
+  let lines = pointsToLines(points);
+  for (let i = 0; i < lines.length; i++) {
     drawLine(screen, lines[i]);
   }
 };
